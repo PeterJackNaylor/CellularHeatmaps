@@ -50,7 +50,7 @@ process TileSegmentation {
 
     queue "gpu-cbio"
     memory '10GB'
-    clusterOptions "--gres=gpu:1"
+    clusterOptions "--gres=gpu:1 --exclude=node[28]"
     scratch true
 
     input:
