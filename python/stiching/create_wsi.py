@@ -8,7 +8,7 @@ from useful_wsi import open_image
 import pyvips
 from os.path import basename, join
 from optparse import OptionParser
-from glob import glqob
+from glob import glob
 from tqdm import tqdm
 from skimage.io import imread
 
