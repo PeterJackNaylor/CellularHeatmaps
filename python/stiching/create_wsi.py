@@ -16,7 +16,7 @@ def get_options():
     parser = OptionParser()
     parser.add_option("--input", dest="input",type="string",
                     help="input folder name with tif files")
-    parser.add_option("--output", dest="output_name",type="string",
+    parser.add_option("--output", dest="output",type="string",
                     help="output name for wsi")
     parser.add_option("--marge", dest="marge", type="int",
                     help="how much to reduce the image size")
