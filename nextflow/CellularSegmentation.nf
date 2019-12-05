@@ -51,7 +51,7 @@ process TileSegmentation {
     queue "gpu-cbio"
     memory '10GB'
     clusterOptions "--gres=gpu:1 --exclude=node[28]"
-    scratch true
+    // scratch true
 
     input:
     set name, file(slide), file(info) from patient_tile_info_i
