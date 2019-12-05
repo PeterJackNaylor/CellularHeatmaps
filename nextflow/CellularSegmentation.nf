@@ -66,7 +66,7 @@ process TileSegmentation {
     output = "./tiles_h5/"
     output_process = "${output_folder}/intermediate-tiles/${name}"
     """
-    # module load cuda10.0 
+    module load cuda10.0 
     python $gpu_segmentation \
                  --slide $slide \
                  --parameter $info \
