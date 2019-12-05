@@ -41,7 +41,7 @@ def predict_each_element(output, slide, parameter_file, model):
     name = os.path.join(output, "probability_{}_{}_{}_{}.h5")
     with open(parameter_file) as f:
         lines = f.readlines()
-        print('NOT FULL'); lines = lines[0:2]
+        # print('NOT FULL'); lines = lines[0:2] # to accelerate, uncomment.
         for line in tqdm(lines):
             inputs = get_input(line)
             img = get_image_from_slide(slide, inputs)
