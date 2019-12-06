@@ -55,6 +55,7 @@ def split(stri):
 
 
 def main():
+    import pdb; pdb.set_trace()
     options = get_options()
     table = load_custom_xlsx(options.input_table)
     which_tiff_exist = [split(f) for f in glob(options.folder_to_check + '/*.tif')]
