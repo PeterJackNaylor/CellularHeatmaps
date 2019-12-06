@@ -29,6 +29,7 @@ def createfolds(table, num, strat_var):
     obj = skf.split(table.index, table[strat_var])
     i = 0
     for _, test_index in obj:
+        import pdb; pdb.set_trace()
         table.ix[test_index, "fold"] = i
         i += 1
     return table
@@ -40,12 +41,10 @@ def main():
     mer = pd.concat([substra, ftnbc])
     mer["Residual"] = (mer["RCB"] == 0).astype('int')
     mer["Prognostic"] = (mer["RCB"] < 1.1).astype('int')
-    import pdb; pdb.set_trace()
     mer = mer.reset_index(drop=True)
     mer = mer.ix[mer[["RCB"]].dropna().index]
     mer = createfolds(mer, 10, 'RCB_class')
-
-    mer.set_index('Biopsy')
+    mer = mer.set_index('Biopsy')
     mer.to_csv(options.output_table)
 
 if __name__ == '__main__':
