@@ -29,7 +29,6 @@ def createfolds(table, num, strat_var):
     obj = skf.split(table.index, table[strat_var])
     i = 0
     for _, test_index in obj:
-        import pdb; pdb.set_trace()
         table.ix[test_index, "fold"] = i
         i += 1
     return table
@@ -46,7 +45,7 @@ def main():
     mer = mer.reset_index(drop=True)
     mer = createfolds(mer, 10, 'RCB_class')
     mer = mer.set_index('Biopsy')
-    mer.to_csv(options.output_table)
+    mer.to_csv(options.output_name)
 
 if __name__ == '__main__':
     main()
