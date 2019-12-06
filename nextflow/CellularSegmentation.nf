@@ -143,7 +143,7 @@ process StichingTiff {
     writting_tiff = file("./python/stiching/create_wsi.py")
     wsi_name = "${name}_${fold.name.split('_')[1]}.tif"
     slide = file(params.tiff_location + "/${name}.tiff")
-    output_process = "${output_folder}/wsi/"
+    output_process = "${output_folder}/wsi/${name}"
     """
     python $writting_tiff --input $fold \
                           --output $wsi_name \
