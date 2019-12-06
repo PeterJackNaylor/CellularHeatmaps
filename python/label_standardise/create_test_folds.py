@@ -38,10 +38,13 @@ def main():
     substra = pd.read_csv(options.substra)
     ftnbc = pd.read_csv(options.ftnbc)
     mer = pd.concat([substra, ftnbc])
+    mer["Residual"] = (mer["RCB"] == 0).astype('int')
+    mer["Prognostic"] = (mer["RCB"] < 1.1).astype('int')
+    import pdb; pdb.set_trace()
     mer = createfolds(mer, 10, 'RCB_class')
     mer.set_index('Biopsy')
     mer.to_csv(options.output_table)
-    
+
 if __name__ == '__main__':
     main()
 
