@@ -57,7 +57,7 @@ def split(stri):
 def main():
     options = get_options()
     table = load_custom_xlsx(options.input_table)
-    which_tiff_exist = [split(f) for f in glob(options.folder_to_check + '/*.tif')]
+    which_tiff_exist = [split(f) for f in glob(options.folder_to_check + '/*.tiff')]
     table.ix[which_tiff_exist].to_csv(options.output_table)
 
 if __name__ == '__main__':
