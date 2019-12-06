@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 import os
+import pickle
 import pandas as pd
 from glob import glob
 import numpy as np
@@ -113,7 +114,7 @@ def collect_files(prefix="data/*.csv", downsampling=1):
     files = {}
     for f in tqdm(glob(prefix)):
         f_name = os.path.basename(f).split('.')[0]
-        files[f_name] = normalise_xcel(f, normalise=True, downsampling=downsampling)
+        files[f_name] = normalise_csv(f, normalise=True, downsampling=downsampling)
     return files
 
 def load_all(f, filter_out="LBP", balance=True, how="min", downsampling=1):
@@ -511,12 +512,12 @@ def main():
                                          keep_axis=0.75, 
                                          n_comp=options.n_components)
     
-    name_object = "umap_cell_transform_ncomp_{}".format(options.n_components)
+    name_object = "model_U{}MAP".format(options.n_components)
     save_umap(name_object, objects)
 
     if options.plotting:
         name_file = "umap_cell_plot_ncomp_{}.pdf".format(options.n_components)
-        name_file_pat = "umap_cellpatient_plot_ncomp_{}.pdf".format(options.n_components)
+        # name_file_pat = "umap_cellpatient_plot_ncomp_{}.pdf".format(options.n_components)
         name_file_kmeans = "umap_cellkmeans_ncomp_{}".format(options.n_components)
 
         umap_plot(umap_transform, name_file, table_cells, 
