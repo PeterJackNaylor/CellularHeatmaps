@@ -43,6 +43,7 @@ def main():
     mer["Prognostic"] = (mer["RCB"] < 1.1).astype('int')
     mer = mer.reset_index(drop=True)
     mer = mer.ix[mer[["RCB"]].dropna().index]
+    mer = mer.reset_index(drop=True)
     mer = createfolds(mer, 10, 'RCB_class')
     mer = mer.set_index('Biopsy')
     mer.to_csv(options.output_table)
