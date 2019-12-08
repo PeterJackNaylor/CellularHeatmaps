@@ -1,6 +1,6 @@
 #!/usr/bin/env nextflow
 
-params.PROJECT_NAME = "TEST"
+params.PROJECT_NAME = "Combined_data"
 params.PROJECT_VERSION = "1-0"
 
 
@@ -28,7 +28,7 @@ if (params.infer == 1){
     process UmapTraining {
         publishDir "${output_process}", overwrite: true
 
-        // memory '120GB'
+        memory '120GB'
 
         input:
         file _ from Channel.from(tables).collect()
@@ -56,7 +56,7 @@ if (params.infer == 1){
 process HeatUMAPGeneration {
     publishDir "${output_process}", overwrite: true
 
-    // memory '10GB'
+    memory '10GB'
 
     input:
     file table from tables
