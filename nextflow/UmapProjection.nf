@@ -56,7 +56,7 @@ if (params.infer == 1){
 process HeatUMAPGeneration {
     publishDir "${output_process}", overwrite: true
 
-    memory '10GB'
+    memory '40GB'
 
     input:
     file table from tables
