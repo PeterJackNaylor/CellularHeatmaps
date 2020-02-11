@@ -1,65 +1,99 @@
 
-training = file("training_test.py")
 
-epochs =  80
-inner_fold =  10
+
+params.PROJECT_NAME = "TEST"
+params.PROJECT_VERSION = "1-0"
+output_folder = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
+
+params.type = "U2MAP"
+params.resolution = "7"
+
+params.input_fold = "${output_folder}/umap/patient_projection/${params.type}/${params.resolution}"
+input_fold = file(params.input_fold)
+
+params.label = "/mnt/data3/pnaylor/CellularHeatmaps/outputs/label.csv"
+label = file(params.label)
+
+output_folder = "${output_folder}/${params.type}_${params.resolution}/"
+
+inner_fold =  5
 batch_size = 16
-resolution = "7"
-base = "/mnt/data3/pnaylor/ProjectFabien/outputs/UmapCell/resolution" + resolution + "/"
-paths = [file(base + "repos_comp2"),  file(base + "repos_comp3"), file(base + "comp2"), , file(base + "comp3")]
-models = ['resnet50convflat']
-interests = ['RCB_class', 'RCB_classcan']
-labels = file("/mnt/data3/pnaylor/ProjectFabien/outputs/multi_class.csv")
+epochs =  80
+models = ['resnet50']
+interests = ['Residual', 'Prognostic']
 learning_rate = [10e-5, 10e-6, 10e-4]
 dropout = 0.5
-tvt = file("trainvalidtest.py")
+repeat = 10
 
 process TrainValidTestPred {
+    publishDir "${output_process}", overwrite: true
+
     queue "gpu-cbio"
     memory '30GB'
     clusterOptions "--gres=gpu:1"
-    scratch true
+//    scratch true
+
     input:
-    each file(path) from paths
+    file path from input_fold
+
     each lr from learning_rate
     each model from models  
     each y_interest from interests
     each n_test from 0..9
+
     output:
-    set y_interest, base_name, file(score_names), file(proba_names) into probability_slide
-    file "*.png"
+    set y_interest, file(score_names) into score_probability
 
     script:
-    compo = path.baseName
-    base_name = compo + "_" + model + "_" + y_interest + "_" + "$lr" + "_" + "$n_test"
+    base_name = "${y_interest}_fold_${n_test}_model_${model}_lr_${lr}"
+    output_process = "${output_folder}/classification/train"
+    py_model = file("./python/classification/multiple_run.py")
     weight_names = base_name + ".h5"
     score_names = base_name + ".pkl"
-    proba_names = base_name + "_proba.csv"
-    if( model == "resnet50convflat" )
-        conv = 0
-    else if( model == "resnet50convflatfreeze" )
-        conv = 0
-    else
-        conv = 1
     """
     module load cuda10.0 
-    python $tvt     --batch_size $batch_size \\
-                    --path  $path\\
-                    --labels $labels \\
-                    --y_interest $y_interest \\
-                    --out_weight  $weight_names\\
-                    --model $model \\
-                    --epochs $epochs \\
-                    --dropout $dropout \\
-                    --repeat 5 \\
-                    --inner_fold $inner_fold \\
-                    --multiprocess 0 \\
-                    --workers 10 \\
-                    --optimizer adam \\
-                    --fold_test $n_test \\
-                    --lr $lr \\
-                    --filename $score_names \\
-                    --probaname $proba_names \\
-                    --fully_conv $conv
+    python $py_model --batch_size $batch_size \\
+                     --path  $path \\
+                     --labels $label \\
+                     --y_interest $y_interest \\
+                     --out_weight  $weight_names \\
+                     --model $model \\
+                     --epochs $epochs \\
+                     --dropout $dropout \\
+                     --repeat $repeat \\
+                     --inner_fold $inner_fold \\
+                     --multiprocess 0 \\
+                     --workers 10 \\
+                     --optimizer adam \\
+                     --fold_test $n_test \\
+                     --lr $lr \\
+                     --filename $score_names 
+    """
+}
+
+score_probability .groupTuple()
+                  .set{score_probability_y_interest}
+
+process pickle_collector {
+    publishDir "${output_process}", overwrite: true
+
+    memory '30GB'
+
+    input:
+    set y_interest, file(pickle) from score_probability_y_interest
+
+    output:
+    file "${filename}"
+
+    script:
+    py_model = file("./python/classification/aggregating_results.py")
+    filename = "classification_${y_interest}_${params.type}_${params.resolution}.csv"
+    output_process = "${output_folder}/classification/results"
+
+    """
+    python $py_model --labels $label \\
+                     --inner_fold $inner_fold \\
+                     --y_interest $y_interest \\
+                     --filename $filename
     """
 }

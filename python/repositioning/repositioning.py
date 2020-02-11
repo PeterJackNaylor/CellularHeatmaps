@@ -66,7 +66,7 @@ def main():
     i_r, mapping = repositionning(inp)
     output = options.output
     check_or_create(output)
-    name = os.path.join(output, os.path.basename(options.input))
+    name = os.path.join(output, os.path.basename(options.input).replace('.npy', "r.npy"))
 
     np.save(name, i_r)
     # beg = "heatmaps_comp{}_repos_".format(num) if options.do_comp else "heatmaps_repos_"

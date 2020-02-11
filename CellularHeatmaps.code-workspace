@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"sync-rsync.local": "/Users/naylorpeter/Documents/Python/mypackages/CellularHeatmaps_project/CellularHeatmaps",
+		"sync-rsync.onSave": true,
+		"sync-rsync.remote": "thalassa:/mnt/data3/pnaylor/CellularHeatmaps",
+		"sync-rsync.onSaveIndividual": true
+	}
+}

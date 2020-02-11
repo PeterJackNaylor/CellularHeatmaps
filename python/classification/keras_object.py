@@ -30,7 +30,7 @@ def random_augment(image, aug):
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
     def __init__(self, data_gene_object, size=(224,224,3), batch_size=4, shuffle=True, split='train', number=0,
-                 one_hot_encoding=True, fully_conv=True, classes=2):
+                 one_hot_encoding=True, fully_conv=False, classes=2):
         self.data = data_gene_object
         self.shuffle = shuffle
         self.batch_size = batch_size

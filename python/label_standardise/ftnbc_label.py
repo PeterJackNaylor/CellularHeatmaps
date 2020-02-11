@@ -73,7 +73,6 @@ def main():
     table.columns = ["index_mitotique", "stroma", "cancer", "cis", "til", "stroma_lym",  'RCB', 'RCB_class', "grade_1", "grade_2", "grade_3"]
     table = table[["index_mitotique", "stroma", "cancer", "cis", "til", "stroma_lym", "grade_1", "grade_2", "grade_3", 'RCB', 'RCB_class']]
     table['RCB_class'] = table[["RCB_class"]].apply(lambda row: f(row["RCB_class"]), axis=1)
-
     table.ix[which_tiff_exist].to_csv(options.output_table)
 
 if __name__ == '__main__':

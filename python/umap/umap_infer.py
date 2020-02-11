@@ -57,7 +57,10 @@ def load_umap_transform(name):
     else:
         umap = pickle.load(open(os.path.join(name, files[0]), 'rb'))
         def predict(z):
-            pred = umap.transform(z)
+            try:
+                pred = umap.transform(z)
+            except:
+                pred = umap.transform(z) # really weird if this works.
             return pred
         return predict
 

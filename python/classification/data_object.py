@@ -105,7 +105,8 @@ class DataGenImage():
         self.folds_focus = False
     def __getitem__(self, index):
         """
-        Get item, when given a biopsy id returns image to a given size.
+        Gets tuple, when given a biopsy id returns image and its label.
+        Parameters
         ----------
         index: string, 
             string existing in the mapper dictionnary
@@ -116,19 +117,36 @@ class DataGenImage():
         return self.mapper[index], self.y.ix[index]
 
     def cropped(self, index, size):
+        """
+        Gets tuples but return the image at a given size, 
+        when given a biopsy id returns image to a given size.
+        Parameters
+        ----------
+        index: string, 
+            string existing in the mapper dictionnary
+        Returns
+        -------
+        A biopsy heatmap.
+        """
         image, label = self.__getitem__(index)
         image = crop_pad_around(image, size)
         return image, label
 
     def return_keys(self):
+        """
+        Returns list of keys.
+        """
         return list(self.mapper.keys())
 
     def return_weights(self):
+        """
+        Returns class associated weights.
+        """
         class_weight = {}
         train, val = self.index_folds[0]
         n = self.y.ix[train].shape[0] + self.y.ix[val].shape[0]
         for i in range(self.classes):
-            size_i = (self.y.ix[train] == i).astype(int).sum() + (y.labels.ix[val] == i).astype(int).sum()
+            size_i = (self.y.ix[train] == i).astype(int).sum() + (self.y.ix[val] == i).astype(int).sum()
             class_weight[i] = (1 - size_i / n)
         return class_weight
 
@@ -137,6 +155,20 @@ class DataGenImage():
         return int(len(self.mapper))
 
     def return_fold(self, split, number):
+        """
+        Returns index associated to a given split and if necessary
+        (for train and validation) a given
+        Parameters
+        ----------
+        split: string, 
+            could be either 'train', 'validation', 'test'
+        number: int,
+            split number, ignored if test, can't be above the number of
+            folds...
+        Returns
+        -------
+        Index which is a list of integers 
+        """
         if self.folds_focus:
             if split == "train":
                 train, val = self.index_folds[number]
@@ -151,7 +183,16 @@ class DataGenImage():
 
     def create_inner_fold(self, nber_splits, test_fold):
         """
-        Creates inner stratefied folds.
+        Creates inner stratefied folds and focuses the dataset
+        on a given test fold number. Important to do before
+        running. Allows to load the model once for multiple 
+        data configurations.
+        Parameters
+        ----------
+        nber_splits: int, 
+            number of inner folds for the training
+        test_fold: int,
+            fold number to remove before doing the inner fold.
         """
         self.test_folds = self.f[self.f == test_fold].index
         for_train = self.f[self.f != test_fold].index

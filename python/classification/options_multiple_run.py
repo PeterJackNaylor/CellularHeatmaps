@@ -69,11 +69,6 @@ def get_options():
                         metavar="int", type=int,
                         help='number of inner folds to perform')
 
-    parser.add_argument('--fold_validation', required=False,
-                        default=0,
-                        metavar="int", type=int,
-                        help='inner fold number to perform validation on')
-
     parser.add_argument('--fold_test', required=False,
                         default=0,
                         metavar="int", type=int,
@@ -110,11 +105,6 @@ def get_options():
                         metavar="str", type=str,
                         help='proba file name for val and test')
 
-    parser.add_argument('--fully_conv', required=False,
-                        default=1,
-                        metavar="int", type=int,
-                        help='if it is fully conv at the end')
     args = parser.parse_args()
-    args.fully_conv = args.fully_conv == 1
     return args
 
