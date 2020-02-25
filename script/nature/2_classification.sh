@@ -10,7 +10,7 @@ do
         nextflow run nextflow/Classification.nf -resume -c ~/.nextflow/config -profile mines \
                                         --PROJECT_NAME nature --PROJECT_VERSION 1-0 \
                                         --type $type --resolution $res \
-                                        --label /mnt/data3/pnaylor/CellularHeatmaps/outputs/label_nature.csv
+                                        --label /mnt/data3/pnaylor/CellularHeatmaps/outputs/label_10_12_19.csv
     done
 done
 

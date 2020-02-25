@@ -2,7 +2,7 @@ import pandas as pd
 import pickle as pkl
 from glob import glob
 import numpy as np
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, accuracy_score, recall_score, precision_score, f1_score
 import pandas as pd 
 
 inner_fold = 5
@@ -69,20 +69,33 @@ def main():
         y_scores = validation_predictions[1]
         y_true = validation_predictions[y_interest]
         avg_auc = roc_auc_score(y_true, y_scores)
+        avg_acc = accuracy_score(y_true, y_scores.round(0))
+        avg_rec = recall_score(y_true, y_scores.round(0))
+        avg_pre = precision_score(y_true, y_scores.round(0))
+        avg_f1 = f1_score(y_true, y_scores.round(0))
 
+        val_dic = {'acc':avg_acc, 'rec':avg_rec, 'pre':avg_pre, 'avg_f1':avg_f1}
 
         test_predictions_c = pd.concat(test_predictions, axis=0)
         y_scores_t = test_predictions_c[1]
         y_true_t = test_predictions_c[y_interest]
         avg_auc_t = roc_auc_score(y_true_t, y_scores_t)
+        avg_acc_t = accuracy_score(y_true_t, y_scores_t.round(0))
+        avg_rec_t = recall_score(y_true_t, y_scores_t.round(0))
+        avg_pre_t = precision_score(y_true_t, y_scores_t.round(0))
+        avg_f1_t = f1_score(y_true_t, y_scores_t.round(0))
+        test_dic = {'acc':avg_acc_t, 'rec':avg_rec_t, 'pre':avg_pre_t, 'avg_f1':avg_f1_t}
+
 
         res = {'max_val': auc_score_best_val,
                'max_val_t': auc_score_best_val_t,
                'max_val_t_p': test_predictions[best_ind],
                'avg_val': avg_auc,
                'avg_val_t': avg_auc_t,
-               'avg_val_t_p': test_predictions_c}
-
+               'avg_val_t_p': test_predictions_c,
+               'val_dic': val_dic,
+               'test_dic': test_dic}
+               
         list_dic.append((f, dic, res))
     
     final_results = pd.DataFrame(index=range(len(list_dic)), columns=["fold", "model", "lr", "max_val"])
@@ -117,12 +130,28 @@ def main():
         y_scores = prob_t_max[1]
         y_true = prob_t_max[y_interest]
         auc_max_test = roc_auc_score(y_true, y_scores)
+        acc_max_test = accuracy_score(y_true, y_scores.round(0))
+        rec_max_test = recall_score(y_true, y_scores.round(0))
+        pre_max_test = precision_score(y_true, y_scores.round(0))
+        f1__max_test = f1_score(y_true, y_scores.round(0))
         final_final.ix[g[0], 'test_max'] = auc_max_test
+        final_final.ix[g[0], 'test_acc_max'] = acc_max_test
+        final_final.ix[g[0], 'test_rec_max'] = rec_max_test
+        final_final.ix[g[0], 'test_pre_max'] = pre_max_test
+        final_final.ix[g[0], 'test_f1_max'] =  f1__max_test
 
         y_scores = prob_t_avg[1]
         y_true = prob_t_avg[y_interest]
         auc_avg_test = roc_auc_score(y_true, y_scores)
+        acc_avg_test = accuracy_score(y_true, y_scores.round(0))
+        rec_avg_test = recall_score(y_true, y_scores.round(0))
+        pre_avg_test = precision_score(y_true, y_scores.round(0))
+        f1__avg_test = f1_score(y_true, y_scores.round(0))
         final_final.ix[g[0], 'test_avg'] = auc_avg_test
+        final_final.ix[g[0], 'test_acc_avg'] = acc_avg_test
+        final_final.ix[g[0], 'test_rec_avg'] = rec_avg_test
+        final_final.ix[g[0], 'test_pre_avg'] = pre_avg_test
+        final_final.ix[g[0], 'test_f1_avg'] =  f1__avg_test
 
         final_final.to_csv(options.filename)
 

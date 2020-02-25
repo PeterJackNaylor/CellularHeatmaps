@@ -3,7 +3,7 @@
 
 params.PROJECT_NAME = "TEST"
 params.PROJECT_VERSION = "1-0"
-output_folder = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
+output_folder = "./outputs"
 
 params.type = "U2MAP"
 params.resolution = "7"
@@ -46,7 +46,7 @@ process TrainValidTestPred {
 
     script:
     base_name = "${y_interest}_fold_${n_test}_model_${model}_lr_${lr}"
-    output_process = "${output_folder}/classification/train"
+    output_process = "${output_folder}/classification/train/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
     py_model = file("./python/classification/multiple_run.py")
     weight_names = base_name + ".h5"
     score_names = base_name + ".pkl"
@@ -86,9 +86,10 @@ process pickle_collector {
     file "${filename}"
 
     script:
+
     py_model = file("./python/classification/aggregating_results.py")
     filename = "classification_${y_interest}_${params.type}_${params.resolution}.csv"
-    output_process = "${output_folder}/classification/results"
+    output_process = "./outputs/classification/results"
 
     """
     python $py_model --labels $label \\
