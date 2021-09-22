@@ -17,8 +17,8 @@ camelyon: src/CellularSegmentation.nf
 	$(ENV); nextflow $< -resume -c nextflow.config -profile kuma \
 						--PROJECT_NAME kuma --PROJECT_VERSION 1-0 \
 						--tiff_location "/data2/pnaylor/datasets/pathology/Camelyon2016/*/*/*.tif" \
-						--nucleus_segmentation_model ../nuclei_segmentation_model\
-						--tissue_segmentation_model ../tissue_segmentation_model
+						--nucleus_segmentation_model /data2/pnaylor/models/nuclei_segmentation_model\
+						--tissue_segmentation_model /data2/pnaylor/models/tissue_segmentation_model
 
 
 clean:
