@@ -87,6 +87,9 @@ if __name__ == "__main__":
                       help="how much to reduce the image size")
     parser.add_option("--name", dest="name", type="str",
                       help="output name for the cell table")
+    parser.add_option("-s", "--no_samples",
+                  action="store_false", dest="samples", default=True,
+                  help="If to save samples")
     (options, args) = parser.parse_args()
 
     res = np.load(options.segmented_batch)
@@ -122,7 +125,7 @@ if __name__ == "__main__":
 
             last_index += n
             table_list.append(table)
-            if mark_cell:
+            if mark_cell and options.samples:
                 rgb_marked = mark_inside_cells(rgb_, table, 
                                                shift_x=x_,
                                                shift_y=y_)

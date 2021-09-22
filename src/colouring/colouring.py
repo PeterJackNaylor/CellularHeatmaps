@@ -103,6 +103,9 @@ def main():
                       help="record name")
     parser.add_option("--slide", dest="slide", type="string",
                       help="slide_name")
+    parser.add_option("-s", "--no_samples",
+                  action="store_false", dest="samples", default=True,
+                  help="If to save samples")
     (options, _) = parser.parse_args() 
 
     file = options.input
@@ -131,8 +134,9 @@ def main():
         bins[i] = list_img[0]
         inp = list(para)
         del inp[-2]
-        for image, name in zip(list_img, out_names):
-            io.imsave(name.format(*inp), image, resolution=[1.0, 1.0])
+        if options.samples:
+            for image, name in zip(list_img, out_names):
+                io.imsave(name.format(*inp), image, resolution=[1.0, 1.0])
     np.savez("segmented_tiles_and_bins.npz", tiles=segmented_tiles, positions=positions,
             raw=raw, bins=bins)
 

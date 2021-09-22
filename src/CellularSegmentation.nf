@@ -9,7 +9,7 @@ output_folder = "./outputs/${params.PROJECT_NAME}_${params.PROJECT_VERSION}"
 params.tiff_location = "./data/*.tiff" // tiff files to process
 params.tissue_segmentation_model = "./meta/tissue_segmentation_model"
 params.nucleus_segmentation_model = "./meta/nuclei_segmentation_model"
-
+params.save = 1
 TISSUE_SEG_MODEL = file(params.tissue_segmentation_model)
 NUCLEUS_SEG_MODEL = file(params.nucleus_segmentation_model)
 params.margin = 50
@@ -58,78 +58,123 @@ process TilePatient {
         template 'segmentation/tilling.py'
 }
 
+if (params.save == 1){
+    process Colouring {
+        publishDir "${output_process}", overwrite: true
 
-process Colouring {
-    publishDir "${output_process}", overwrite: true
+        input:
+        set file(sample), file(bag_segmentation) from BATCH_SEG
 
-    input:
-    set file(sample), file(bag_segmentation) from BATCH_SEG
+        output:
+            set file(sample), file("tiles_bin") into BIN
+            set file(sample), file("tiles_contours") into CONTOURS
+            set file(sample), file("tiles_prob") into PROB
+            set file(sample), file("segmented_tiles_and_bins.npz") into BATCH_VISU
 
-    output:
-        set file(sample), file("tiles_bin") into BIN
-        set file(sample), file("tiles_contours") into CONTOURS
-        set file(sample), file("tiles_prob") into PROB
-        set file(sample), file("segmented_tiles_and_bins.npz") into BATCH_VISU
+        script:
+            coloring_tiles = file("./src/colouring/colouring.py")
+            s_without_ext = "${sample}".split("\\.")[0]
+            output_process = "${output_folder}/intermediate-tiles/${s_without_ext}/"
+            """
+            python $coloring_tiles --input $bag_segmentation --slide $sample
+            """
+    }
 
-    script:
-        coloring_tiles = file("./src/colouring/colouring.py")
+    process FeatureExtraction {
+        publishDir "${output_process}", overwrite: true, pattern: "*.csv"
+        publishDir "${output_process_tiles}", overwrite: true, pattern: "tiles_markedcells"
+
+        memory { 4.GB  + 4.GB * task.attempt }
+        errorStrategy 'retry'
+
+        input:
+            set file(sample), file(batch) from BATCH_VISU
+
+        output:
+            set file(sample), file("*.csv") into TABLE
+            set file(sample), file("tiles_markedcells") into MARKED_CELLS
+
+        script:
+            output_process = "${output_folder}/cell_tables"
+            s_without_ext = "${sample}".split("\\.")[0]
+            output_process_tiles = "${output_folder}/intermediate-tiles/${s_without_ext}"
+            marked_cells = "tiles_markedcells"
+            extractor = file("src/extractor/extraction.py")
+            """
+            python $extractor --segmented_batch $batch \
+                            --marge $wsi_margin \
+                            --output_tiles $marked_cells \
+                            --name $s_without_ext
+            """
+    }
+    CONTOURS .concat(BIN, PROB, MARKED_CELLS).set{TO_STICH}
+
+    process StichingTiff {
+        publishDir "${output_process}", overwrite: true
+
+        memory { 10.GB * task.attempt }
+        errorStrategy 'retry'
+
+        input:
+        set file(sample), file(fold) from TO_STICH
+
+        output:
+        file "${wsi_sample}"
+
+        script:
+        writting_tiff = file("./src/stiching/create_wsi.py")
         s_without_ext = "${sample}".split("\\.")[0]
-        output_process = "${output_folder}/intermediate-tiles/${s_without_ext}/"
+        wsi_sample = "${s_without_ext}_${fold.name.split('_')[1]}.tif"
+        output_process = "${output_folder}/wsi/${s_without_ext}"
         """
-        python $coloring_tiles --input $bag_segmentation --slide $sample
+        python $writting_tiff --input $fold \
+                            --output $wsi_sample \
+                            --slide $sample \
+                            --marge $wsi_margin
         """
-}
+    }
+} else {
 
-process FeatureExtraction {
-    publishDir "${output_process}", overwrite: true, pattern: "*.csv"
-    publishDir "${output_process_tiles}", overwrite: true, pattern: "tiles_markedcells"
+    process Postprocessing {
+        input:
+        set file(sample), file(bag_segmentation) from BATCH_SEG
 
-    memory { 4.GB  + 4.GB * task.attempt }
-    errorStrategy 'retry'
+        output:
+            set file(sample), file("segmented_tiles_and_bins.npz") into BATCH_VISU
 
-    input:
-        set file(sample), file(batch) from BATCH_VISU
+        script:
+            coloring_tiles = file("./src/colouring/colouring.py")
+            s_without_ext = "${sample}".split("\\.")[0]
+            """
+            python $coloring_tiles --input $bag_segmentation --slide $sample --no_samples
+            """
+    }
 
-    output:
-        set file(sample), file("*.csv") into TABLE
-        set file(sample), file("tiles_markedcells") into MARKED_CELLS
+    process FeatureExtraction {
+        publishDir "${output_process}", overwrite: true, pattern: "*.csv"
 
-    script:
-        output_process = "${output_folder}/cell_tables"
-        s_without_ext = "${sample}".split("\\.")[0]
-        output_process_tiles = "${output_folder}/intermediate-tiles/${s_without_ext}"
-        marked_cells = "tiles_markedcells"
-        extractor = file("src/extractor/extraction.py")
-        """
-        python $extractor --segmented_batch $batch \
-                        --marge $wsi_margin \
-                        --output_tiles $marked_cells \
-                        --name $s_without_ext
-        """
-}
-CONTOURS .concat(BIN, PROB, MARKED_CELLS).set{TO_STICH}
+        memory { 4.GB  + 4.GB * task.attempt }
+        errorStrategy 'retry'
 
-process StichingTiff {
-    publishDir "${output_process}", overwrite: true
+        input:
+            set file(sample), file(batch) from BATCH_VISU
 
-    memory { 10.GB * task.attempt }
-    errorStrategy 'retry'
+        output:
+            set file(sample), file("*.csv") into TABLE
 
-    input:
-    set file(sample), file(fold) from TO_STICH
+        script:
+            output_process = "${output_folder}/cell_tables"
+            s_without_ext = "${sample}".split("\\.")[0]
+            output_process_tiles = "${output_folder}/intermediate-tiles/${s_without_ext}"
+            marked_cells = "tiles_markedcells"
+            extractor = file("src/extractor/extraction.py")
+            """
+            python $extractor --segmented_batch $batch \
+                            --marge $wsi_margin \
+                            --output_tiles $marked_cells \
+                            --name $s_without_ext \
+                            --no_samples
+            """
+    }
 
-    output:
-    file "${wsi_sample}"
-
-    script:
-    writting_tiff = file("./src/stiching/create_wsi.py")
-    s_without_ext = "${sample}".split("\\.")[0]
-    wsi_sample = "${s_without_ext}_${fold.name.split('_')[1]}.tif"
-    output_process = "${output_folder}/wsi/${s_without_ext}"
-    """
-    python $writting_tiff --input $fold \
-                        --output $wsi_sample \
-                        --slide $sample \
-                        --marge $wsi_margin
-    """
 }
