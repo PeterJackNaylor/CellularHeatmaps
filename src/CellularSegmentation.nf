@@ -80,7 +80,7 @@ if (params.save == 1){
             """
     }
 
-    process FeatureExtraction {
+    process FeatureExtraction_CellMarking {
         publishDir "${output_process}", overwrite: true, pattern: "*.csv"
         publishDir "${output_process_tiles}", overwrite: true, pattern: "tiles_markedcells"
 
