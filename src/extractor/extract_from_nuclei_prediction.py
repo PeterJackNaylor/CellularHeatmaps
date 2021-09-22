@@ -4,7 +4,16 @@ import pandas as pd
 
 from skimage.morphology import watershed, dilation, disk, reconstruction
 from skimage.measure import regionprops, label
+from tqdm import trange
+from joblib import Parallel, delayed
+import time
+import asyncio
 
+def background(f):
+    def wrapped(*args, **kwargs):
+        return asyncio.get_event_loop().run_in_executor(None, f, *args, **kwargs)
+
+import multiprocessing
 
 def get_names(feat_list):
     """
@@ -99,11 +108,36 @@ def bin_analyser(rgb_image, bin_image, list_feature,
     n = len(region_prop[0])
 
     table = np.zeros(shape=(n, p))
+
+    # start = time.time()
+    # offsets = []
+    # for i in range(n):
+    #     offset_i = [0] 
+    #     offset_count = 0
+    #     for j, feat in enumerate(list_feature):
+    #         offset_count += feat.size - 1
+    #         offset_i.append(offset_count)
+    #     offsets.append(offset_i)
+
+    # @background
+    # def process_image(i):
+    #     for j, feat in enumerate(list_feature):
+    #         off_tmp = feat.size
+    #         tmp_regionprop = region_prop[feat._return_n_extension()][i]
+    #         table[i, (j + offsets[i][j]):(j + offsets[i][j] + off_tmp)] = feat._apply_region(tmp_regionprop, rgb_image)
+    
+    # for i in range(n):
+    #     process_image(i)
+    # Parallel(n_jobs=10)(delayed(process_image)(i) for i in range(n))
+
+    # pool = multiprocessing.Pool(10)
+    # t = pool.map(process_image, range(0, n))
+
     for i in range(n):
         offset_all = 0 
         for j, feat in enumerate(list_feature):
             off_tmp = feat.size   
-            tmp_regionprop = region_prop[feat._return_n_extension()][i]  
+            tmp_regionprop = region_prop[feat._return_n_extension()][i]
             table[i, (j + offset_all):(j + offset_all + off_tmp)] = feat._apply_region(tmp_regionprop, rgb_image)
             offset_all += feat.size - 1
 

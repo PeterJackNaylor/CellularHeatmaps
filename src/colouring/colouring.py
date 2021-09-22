@@ -7,7 +7,7 @@ from os.path import join
 import numpy as np
 from glob import glob
 import h5py
-from tqdm import tqdm 
+from tqdm import trange
 from scipy.ndimage import binary_fill_holes
 
 import skimage.measure as meas
@@ -16,7 +16,6 @@ from skimage.morphology import remove_small_objects
 from skimage.segmentation import mark_boundaries
 from skimage import img_as_ubyte
 io.use_plugin('tifffile')
-
 from dynamic_watershed.dynamic_watershed import post_process, generate_wsl
 
 def add_contours(image, label, color = (0, 1, 0)):
@@ -76,14 +75,11 @@ def post_process_out(pred, img):
         P: distance map,
         img: raw input img,
     """
-    hp = {'p1': 1, 'p2':0.5}
-    scale = 1
-    min_size = 128
 
-    pred[pred < 0] = 0.
-    pred[pred > 255] = 255.
+    hp = {'p1': 16 / 255, 'p2':0.5}
+    min_size = 64
 
-    labeled_pic = post_process(pred, hp["p1"] * scale, hp["p2"] * scale)
+    labeled_pic = post_process(pred[:,:,0], hp["p1"], thresh=hp["p2"])
     borders_labeled_pic = generate_wsl(labeled_pic)
     labeled_pic = remove_small_objects(labeled_pic, min_size=min_size)
     labeled_pic[labeled_pic > 0] = 255
@@ -98,38 +94,47 @@ def post_process_out(pred, img):
     pred = pred * 255. / 20
     P = pred.astype('uint8')
 
-    return B, C, P, img
+    return B, C, P
 
 def main():
     from optparse import OptionParser
     parser = OptionParser()
     parser.add_option("--input", dest="input", type="string",
                       help="record name")
+    parser.add_option("--slide", dest="slide", type="string",
+                      help="slide_name")
     (options, _) = parser.parse_args() 
 
-    files = glob(options.input)
+    file = options.input
     tiles_prob = "./tiles_prob"
     tiles_contours = "./tiles_contours"
     tiles_bin = "./tiles_bin"
-    tiles_rgb = "./tiles_rgb"
 
-    folders = [tiles_bin, tiles_contours, tiles_prob, tiles_rgb]
+    folders = [tiles_bin, tiles_contours, tiles_prob]
     out_names = [join(f, f.split('_')[-1] + "_{}_{}_{}_{}.tif") for f in folders]
 
     for f in folders:
         check_or_create(f)
 
-
-    for f in tqdm(files):
-        h5f = h5py.File(f, 'r')
-        distance = h5f['distance'][:]
-        rgb = h5f['raw'][:]
-        h5f.close()
-        list_img = post_process_out(distance, rgb)
-        inp = os.path.basename(f).split('.')[0].split('_')
-        del inp[0]
+    files = np.load(file)
+    raw = files["raw"]
+    segmented_tiles = files["tiles"]
+    positions = files["positions"]
+    n = segmented_tiles.shape[0]
+    s = segmented_tiles.shape[1]
+    bins = np.zeros((n, s, s), dtype="uint8")
+    for i in trange(n):
+        para = positions[i]
+        prob = segmented_tiles[i]
+        rgb = raw[i]
+        list_img = post_process_out(prob, rgb)
+        bins[i] = list_img[0]
+        inp = list(para)
+        del inp[-2]
         for image, name in zip(list_img, out_names):
             io.imsave(name.format(*inp), image, resolution=[1.0, 1.0])
+    np.savez("segmented_tiles_and_bins.npz", tiles=segmented_tiles, positions=positions,
+            raw=raw, bins=bins)
 
 if __name__ == '__main__':
     main()

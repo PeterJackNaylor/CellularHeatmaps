@@ -1,4 +1,5 @@
 import pdb
+import os
 import sys
 import openslide
 from useful_wsi import open_image
@@ -31,6 +32,9 @@ if __name__ == "__main__":
     options = get_options()
     margin = options.marge
 
+    basename = os.path.basename(options.slide).split('.')[0]
+
+
     # output wsi
     size_x, size_y = open_image(options.slide).dimensions
     img = pyvips.Image.black(size_x, size_y)
@@ -41,12 +45,12 @@ if __name__ == "__main__":
     for f in tqdm(glob(files)):
 
         tile = pyvips.Image.new_from_file(f, 
-                                    access = pyvips.Access.SEQUENTIAL)
-        _, _x, _y, _size_x, _size_y = f.split('/')[-1].split('.')[0].split('_')
-        
+                                    access=pyvips.Access.SEQUENTIAL)
+        _, _x, _y, _size_x, level = f.split('/')[-1].split('.')[0].split('_')
+        _size_y = _size_x
 
         _size_x, _size_y = int(_size_x) - 2 * margin, int(_size_y) - 2 * margin
         sub_tile = tile.extract_area(margin, margin, _size_x, _size_y)
         img = img.insert(sub_tile, int(_x) + margin, int(_y) + margin)
 
-    img.tiffsave(options.output, compression="jpeg", tile=True, pyramid=True, bigtiff = True)
+    img.tiffsave(options.output, compression="jpeg", tile=True, pyramid=True, bigtiff=True)

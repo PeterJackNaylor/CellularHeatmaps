@@ -1,8 +1,9 @@
 import os
+import numpy as np
 
 from glob import glob
 from optparse import OptionParser
-from tqdm import tqdm
+from tqdm import trange
 import pandas as pd 
 
 import skimage.io as io
@@ -23,9 +24,9 @@ coordinates = ["Centroid_x", "Centroid_y", "BBox_x_min",
                "BBox_y_min", "BBox_x_max", "BBox_y_max"] 
 
 list_f = [PixelSize("Pixel_sum", 0), 
-          Granulometri(["Grano_1", "Grano_3", "Grano_5", "Grano_7"], 0, [1, 3, 5, 7]),
-          GranulometriOutside(["OutGrano_1", "OutGrano_3", "OutGrano_5", "OutGrano_7"], 0, 
-                              [1, 3, 5, 7], pixel_marge=10),
+        #   Granulometri(["Grano_1", "Grano_3", "Grano_5", "Grano_7"], 0, [1, 3, 5, 7]),
+        #   GranulometriOutside(["OutGrano_1", "OutGrano_3", "OutGrano_5", "OutGrano_7"], 0, 
+        #                       [1, 3, 5, 7], pixel_marge=10),
           MeanIntensity("Intensity_mean_0", 0), 
           ChannelMeanIntensity(["Channel_Intensity_mean_0{}".format(el) for el in range(3)], 0),
           MeanIntensityOutsideNuclei("Intensity_Outside_nuclei_0", 0,  pixel_marge=10),
@@ -78,10 +79,8 @@ def mark_inside_cells(rgb, table, shift_x=0, shift_y=0):
 
 if __name__ == "__main__":
     parser = OptionParser()
-    parser.add_option("--bin_folder", dest="bin", type="string",
-                      help="bin folder name")
-    parser.add_option("--rgb_folder", dest="rgb", type="string",
-                      help="rgb folder name")
+    parser.add_option("--segmented_batch", dest="segmented_batch", type="string",
+                      help="npz object containing the segmentation results and positions")
     parser.add_option("--output_tiles", dest="output_tiles", type="string",
                       help="output table name")
     parser.add_option("--marge", dest="marge", type="int",
@@ -90,28 +89,32 @@ if __name__ == "__main__":
                       help="output name for the cell table")
     (options, args) = parser.parse_args()
 
-    pattern = os.path.join(options.rgb, "*.tif")
+    res = np.load(options.segmented_batch)
+    rgb = res["raw"]
+    bins = res["bins"]
+    position = res["positions"]
+
+    name = options.name.split('.')[0]
+
     last_index = 0
     table_list = []
     mark_cell = options.output_tiles is not None
     if mark_cell:
         check_or_create(options.output_tiles)
 
-    for rgb_path in tqdm(glob(pattern)):
-        bin_path = rgb_path.replace("rgb", "bin")
+    for i in trange(rgb.shape[0]):
 
-        rgb = io.imread(rgb_path)
-        bin_ = io.imread(bin_path)
-
+        rgb_ = rgb[i]
+        bin_ = bins[i]
         ## to ensure each cell as a unique id
         if not nothing(bin_):
 
             # set centroid to image
-            bn = os.path.basename(rgb_path)
-            x_, y_ = int(bn.split('_')[1]), int(bn.split('_')[2])
+            pos = list(position[i])
+            x_, y_ = pos[0:2]
+            del pos[3]
             list_f[-1].set_shift((x_, y_))
-
-            table, labeled = bin_analyser(rgb, bin_, list_f, options.marge, pandas_table=True)
+            table, labeled = bin_analyser(rgb_, bin_, list_f, options.marge, pandas_table=True)
             n = table.shape[0]
 
             table["index"] = range(last_index, n + last_index)
@@ -120,10 +123,10 @@ if __name__ == "__main__":
             last_index += n
             table_list.append(table)
             if mark_cell:
-                rgb_marked = mark_inside_cells(rgb, table, 
+                rgb_marked = mark_inside_cells(rgb_, table, 
                                                shift_x=x_,
                                                shift_y=y_)
-                io.imsave(bin_path.replace("tiles_bin", options.output_tiles), rgb_marked)
+                io.imsave(os.path.join(options.output_tiles, "markedcells_{}_{}_{}_{}.tif".format(*pos)), rgb_marked)
                 
 
     res = pd.concat(table_list, axis=0)
