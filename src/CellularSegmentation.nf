@@ -23,7 +23,9 @@ wsi_margin = params.margin
 
 
 process SegmentTissue {
-
+    beforeScript "source ${CWD}/environment/GPU_LOCKS/set_gpu.sh ${CWD}"
+    afterScript  "source ${CWD}/environment/GPU_LOCKS/free_gpu.sh ${CWD}"
+    
     publishDir "${output_folder}/wsi_seg_checks/${s_without_ext}", mode: 'copy', overwrite: 'true', pattern: "*.png"
 
     input:
