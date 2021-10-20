@@ -100,7 +100,7 @@ class ChannelMeanIntensity(Feature):
         val = []
         for c in range(RGB.shape[2]):
             cha_crop = img_crop[:,:,c]
-            value = np.mean(cha_crop[bin])
+            value = np.mean(cha_crop[bin]) / 255
             val.append(value)
         return val
     def GetSize(self):
@@ -138,7 +138,7 @@ class ChannelMeanIntensityOutsideNuclei(Feature):
         val = []
         for c in range(RGB.shape[2]):
             cha_crop = img_crop[:,:,c]
-            value = np.mean(cha_crop[inv_bin])
+            value = np.mean(cha_crop[inv_bin]) / 255
             val.append(value)
         return val
     def GetSize(self):
@@ -163,7 +163,7 @@ class ChannelStdIntensity(Feature):
         val = []
         for c in range(RGB.shape[2]):
             cha_crop = img_crop[:,:,c]
-            value = np.std(cha_crop[bin])
+            value = np.std(cha_crop[bin]) / 255
             val.append(value)
         return val
     def GetSize(self):
