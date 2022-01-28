@@ -310,7 +310,7 @@ def bin_extractor(rgb_image, bin_image, list_feature,
             cell_array = [el for el in cell_array if el is not None]
             cell_array = np.stack(cell_array)
         else:
-            cell_array = None
+            cell_array = np.zeros(shape=(0, 16, 16, 3), dtype='uint8')
         return cell_matrix, cell_array
 
 

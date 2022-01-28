@@ -76,7 +76,7 @@ def post_process_out(pred, img):
         img: raw input img,
     """
 
-    hp = {'p1': 16 / 255, 'p2':0.5}
+    hp = {'p1': 32 / 255, 'p2':0.5}
     min_size = 64
 
     labeled_pic = post_process(pred[:,:,0], hp["p1"], thresh=hp["p2"])
