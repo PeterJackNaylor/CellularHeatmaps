@@ -12,7 +12,7 @@ test_run: src/CellularSegmentation.nf
 						--tiff_location "/data/dataset/camelyon2016/*/*/*.tif" \
 						--nucleus_segmentation_model ../segmentation-he/outputs/nuclei_segmentation_model_with_aji/nuclei_segmentation_model \
 						--tissue_segmentation_model ../segmentation-he/outputs/tissue_segmentation_model \
-						--save 1
+						--save 1 --n_jobs 4
 
 camelyon: src/CellularSegmentation.nf
 	$(ENV); nextflow $< -resume -c nextflow.config -profile kuma \
@@ -20,7 +20,7 @@ camelyon: src/CellularSegmentation.nf
 						--tiff_location "/data2/pnaylor/datasets/pathology/Camelyon2016/*/*/*.tif" \
 						--nucleus_segmentation_model /data2/pnaylor/models/nuclei_segmentation_model \
 						--tissue_segmentation_model /data2/pnaylor/models/tissue_segmentation_model \
-						--save 0
+						--save 0 --n_jobs 8
 
 
 clean:

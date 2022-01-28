@@ -1,32 +1,11 @@
 useful_wsi 
 OptionParser
-from load_mask import make_label_with_otsu
 segmentation_net
 skimage
 dynamic_watershed
 scipy
 tqdm
 h5py
- glob 
- numpy
- pyvips
-
- import matplotlib as mpl
-mpl.use('Agg')
-import matplotlib.pyplot as plt
-
-from tqdm import tqdm
-import pandas as pd
-import matplotlib.pylab as plt
-import numpy as np
-import umap
-from useful_wsi import get_image
-import os
-from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from glob import glob
-import pickle
-import seaborn as sns
-from skimage.io import imsave
-
-rectpack 
+glob 
+numpy
+pyvips

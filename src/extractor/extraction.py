@@ -10,37 +10,57 @@ import skimage.io as io
 io.use_plugin('tifffile')
 
 
-from extract_from_nuclei_prediction import bin_analyser
+from extract_from_nuclei_prediction import bin_analyser, bin_extractor
 from feature_object import (PixelSize, MeanIntensity, Centroid,
                             Elongation, Circularity, StdIntensity,
-                            MeanIntensityOutsideNuclei, Granulometri,
-                            GranulometriOutside, LBP, LBPOutside,
-                            ChannelMeanIntensity, ChannelStdIntensity, 
-                            ChannelMeanIntensityOutsideNuclei)
+                            Granulometri, LBP,
+                            ChannelMeanIntensity, ChannelStdIntensity)
 
 
 
-coordinates = ["Centroid_x", "Centroid_y", "BBox_x_min",
+coordinates = ["Centroid_x", "Centroid_y", "Width", "Height", "BBox_x_min",
                "BBox_y_min", "BBox_x_max", "BBox_y_max"] 
+list_f = []
+for d in [0, 4]:
+    list_f.append(PixelSize(f"Pixel_sum_{d}", d))
+    list_f.append(MeanIntensity(f"Intensity_mean_{d}", d))
+    list_f.append(ChannelMeanIntensity([f"Channel_Intensity_mean_0{el}_{d}".format(el) for el in range(3)], d))
+    list_f.append(StdIntensity(f"Intensity_std_{d}", d))
+    list_f.append(ChannelStdIntensity([f"Channel_Intensity_std_0_c{el}_{d}".format(el) for el in range(3)], d))
+    list_f.append(LBP(["Doesn't matter"], d))
+    list_f.append(Granulometri([f"Grano_1_{d}", f"Grano_2_{d}", f"Grano_3_{d}", f"Grano_4_{d}", f"Grano_5_{d}"], d, [1, 2, 3, 4, 5]))
 
-list_f = [PixelSize("Pixel_sum", 0), 
-        #   Granulometri(["Grano_1", "Grano_3", "Grano_5", "Grano_7"], 0, [1, 3, 5, 7]),
-        #   GranulometriOutside(["OutGrano_1", "OutGrano_3", "OutGrano_5", "OutGrano_7"], 0, 
-        #                       [1, 3, 5, 7], pixel_marge=10),
-          MeanIntensity("Intensity_mean_0", 0), 
-          ChannelMeanIntensity(["Channel_Intensity_mean_0{}".format(el) for el in range(3)], 0),
-          MeanIntensityOutsideNuclei("Intensity_Outside_nuclei_0", 0,  pixel_marge=10),
-          ChannelMeanIntensityOutsideNuclei(["Channel_Intensity_Outside_nuclei_0{}".format(el) for el in range(3)], 0,  pixel_marge=10),
-          StdIntensity("Intensity_std_0", 0),
-          ChannelStdIntensity(["Channel_Intensity_std_0_c{}".format(el) for el in range(3)], 0),
-          Elongation("Elongation", 0),
-          Circularity("Circularity", 0),
-          Centroid(coordinates, 0)]
-          #MeanIntensity("Intensity_mean_5", 5), 
-          #MeanIntensity("Intensity_mean_10", 10), 
-          # LBP(["It will be renamed to something cool.."], 0),
-          # LBPOutside(["It will be renamed to something cool.."], 0,  pixel_marge=10),
-          
+list_f.append(Elongation("Elongation", 0))
+list_f.append(Circularity("Circularity", 0))
+list_f.append(Centroid(coordinates, 0))
+# list_f = [
+#         , 
+#         PixelSize("Pixel_sum_4", ), 
+#         PixelSize("Pixel_sum_8", 10), 
+#         ,
+#         Granulometri(["Grano_1_5", "Grano_2_5", "Grano_3_5", "Grano_4_5", "Grano_5_5"], 5, [1, 2, 3, 4, 5]),
+#         MeanIntensity("Intensity_mean_0", 0), 
+#         MeanIntensity("Intensity_mean_5", 5), 
+#         # MeanIntensity("Intensity_mean_10", 10), 
+#         ChannelMeanIntensity(["Channel_Intensity_mean_0{}_0".format(el) for el in range(3)], 0),
+#         ChannelMeanIntensity(["Channel_Intensity_mean_0{}_5".format(el) for el in range(3)], 5),
+#         ChannelMeanIntensity(["Channel_Intensity_mean_0{}_10".format(el) for el in range(3)], 10),
+#         StdIntensity("Intensity_std_0", 0),
+#         StdIntensity("Intensity_std_0", 5),
+#         StdIntensity("Intensity_std_0", 10),
+#         ChannelStdIntensity(["Channel_Intensity_std_0_c{}_0".format(el) for el in range(3)], 0),
+#         ChannelStdIntensity(["Channel_Intensity_std_0_c{}_5".format(el) for el in range(3)], 5),
+#         ChannelStdIntensity(["Channel_Intensity_std_0_c{}_10".format(el) for el in range(3)], 10),
+#         Elongation("Elongation", 0),
+#         Circularity("Circularity", 0),
+#         LBP(["Doesn't matter"], 0),
+#         LBP(["Doesn't matter"], 5),
+#         Centroid(coordinates, 0),
+#         # MeanIntensity("Intensity_mean_5", 5), 
+#         #MeanIntensity("Intensity_mean_10", 10), 
+#           # LBPOutside(["It will be renamed to something cool.."], 0,  pixel_marge=10),
+# ]
+
 def check_or_create(path):
     """
     If path exists, does nothing otherwise it creates it.
@@ -77,6 +97,9 @@ def mark_inside_cells(rgb, table, shift_x=0, shift_y=0):
     table.apply(lambda row: mark(new_rgb, row, shift_x=shift_x, shift_y=shift_y), axis=1)
     return new_rgb
 
+### to remove
+import time
+
 if __name__ == "__main__":
     parser = OptionParser()
     parser.add_option("--segmented_batch", dest="segmented_batch", type="string",
@@ -90,6 +113,9 @@ if __name__ == "__main__":
     parser.add_option("-s", "--no_samples",
                   action="store_false", dest="samples", default=True,
                   help="If to save samples")
+    parser.add_option("--n_jobs", dest="n_jobs", type="int", default=8,
+                      help="Number of jobs")
+
     (options, args) = parser.parse_args()
 
     res = np.load(options.segmented_batch)
@@ -98,10 +124,12 @@ if __name__ == "__main__":
     position = res["positions"]
 
     name = options.name.split('.')[0]
-
+    n_jobs = int(options.n_jobs)
     last_index = 0
     table_list = []
     mark_cell = options.output_tiles is not None
+    save_cells = True
+    cell_list = []
     if mark_cell:
         check_or_create(options.output_tiles)
 
@@ -117,21 +145,33 @@ if __name__ == "__main__":
             x_, y_ = pos[0:2]
             del pos[3]
             list_f[-1].set_shift((x_, y_))
-            table, labeled = bin_analyser(rgb_, bin_, list_f, options.marge, pandas_table=True)
-            n = table.shape[0]
 
-            table["index"] = range(last_index, n + last_index)
-            table.set_index(["index"], inplace=True)
+            start = time.time()
+            # table, labeled = bin_analyser(rgb_, bin_, list_f, options.marge, pandas_table=True)
+            if save_cells:
+                table, cells = bin_extractor(rgb_, bin_, list_f, options.marge, pandas_table=True, save_cells=save_cells, n_jobs=n_jobs)
+            else:
+                table = bin_extractor(rgb_, bin_, list_f, options.marge, pandas_table=True, save_cells=save_cells, n_jobs=n_jobs)
+            # print(f"ONE IMAGE: {(time.time() - start)*1000} ms")
+            if table is not None:
+                if save_cells:
+                    cell_list.append(cells)
+                n = table.shape[0]
+                table["index"] = range(last_index, n + last_index)
+                table.set_index(["index"], inplace=True)
 
-            last_index += n
-            table_list.append(table)
-            if mark_cell and options.samples:
-                rgb_marked = mark_inside_cells(rgb_, table, 
-                                               shift_x=x_,
-                                               shift_y=y_)
-                io.imsave(os.path.join(options.output_tiles, "markedcells_{}_{}_{}_{}.tif".format(*pos)), rgb_marked)
+                last_index += n
+                table_list.append(table)
+                if mark_cell and options.samples:
+                    rgb_marked = mark_inside_cells(rgb_, table, 
+                                                shift_x=x_,
+                                                shift_y=y_)
+                    io.imsave(os.path.join(options.output_tiles, "markedcells_{}_{}_{}_{}.tif".format(*pos)), rgb_marked)
                 
 
     res = pd.concat(table_list, axis=0)
     res = res[(res.T != 0).any()] # drop rows where that are only 0! :) 
     res.to_csv(options.name + ".csv")
+    if save_cells:
+        all_cells = np.vstack(cell_list)
+        np.save(options.name + "_tinycells.npy", all_cells)

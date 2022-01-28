@@ -5,6 +5,7 @@ from skimage.io import imsave
 from skimage.morphology import disk, opening
 from skimage.feature import local_binary_pattern
 import pdb
+from scipy import ndimage
 
 class Feature(object):
     """
@@ -28,7 +29,7 @@ class Feature(object):
         return self.name
     def _return_n_extension(self):
         return self.n_extension
-    def _apply_region(self, regionp, RGB):
+    def _apply_region(self, RGB, BIN, cell):
         raise NotImplementedError
     def GetSize(self):
         raise NotImplementedError
@@ -76,31 +77,24 @@ def OutSideBBandBin(regionp, RGB, marge):
     return x_m, x_M, y_m, y_M, inv_bin
 
 class PixelSize(Feature):
-    def _apply_region(self, regionp, RGB):
-        bin = regionp.image.astype(np.uint8)
-        return Pixel_size(bin)
+    def _apply_region(self, RGB, BIN, cell):
+        return Pixel_size(BIN)
     def GetSize(self):
         self.size = 1
 
 class MeanIntensity(Feature):
-    def _apply_region(self, regionp, RGB):
-        bin = regionp.image.astype(np.uint8)
-        x_m, y_m, x_M, y_M = regionp.bbox
-        img_crop = RGB[x_m:x_M, y_m:y_M]
-        return Mean_intensity(img_crop, bin)
+    def _apply_region(self, RGB, BIN, cell):
+        return Mean_intensity(RGB, BIN)
     def GetSize(self):
         self.size = 1
 
 class ChannelMeanIntensity(Feature):
-    def _apply_region(self, regionp, RGB):
-        bin = regionp.image.astype(np.uint8)
-        bin = bin > 0
-        x_m, y_m, x_M, y_M = regionp.bbox
-        img_crop = RGB[x_m:x_M, y_m:y_M]
+    def _apply_region(self, RGB, BIN, cell):
+        bin_b = BIN > 0
         val = []
         for c in range(RGB.shape[2]):
-            cha_crop = img_crop[:,:,c]
-            value = np.mean(cha_crop[bin]) / 255
+            cha_crop = RGB[:,:,c]
+            value = np.mean(cha_crop[bin_b]) / 255
             val.append(value)
         return val
     def GetSize(self):
@@ -112,9 +106,9 @@ class MeanIntensityOutsideNuclei(Feature):
         self.n_extension = n_extension
         self.size = 0
         self.shift_value = (0, 0)
-        self.marge = pixel_marge
+        self.pmarge = pixel_marge
         self.GetSize()
-    def _apply_region(self, regionp, RGB):
+    def _apply_region(self, RGB, BIN, cell):
         x_m, x_M, y_m, y_M, inv_bin = OutSideBBandBin(regionp, RGB, self.marge)
 
         img_crop = RGB[x_m:x_M, y_m:y_M]
@@ -131,7 +125,7 @@ class ChannelMeanIntensityOutsideNuclei(Feature):
         self.shift_value = (0, 0)
         self.marge = pixel_marge
         self.GetSize()
-    def _apply_region(self, regionp, RGB):
+    def _apply_region(self, RGB, BIN, cell):
         x_m, x_M, y_m, y_M, inv_bin = OutSideBBandBin(regionp, RGB, self.marge)
         inv_bin = inv_bin > 0
         img_crop = RGB[x_m:x_M, y_m:y_M]
@@ -146,48 +140,62 @@ class ChannelMeanIntensityOutsideNuclei(Feature):
 
 
 class StdIntensity(Feature):
-    def _apply_region(self, regionp, RGB):
-        bin = regionp.image.astype(np.uint8)
-        x_m, y_m, x_M, y_M = regionp.bbox
-        img_crop = RGB[x_m:x_M, y_m:y_M]
-        return Std_intensity(img_crop, bin)
+    def _apply_region(self, RGB, BIN, cell):
+        return Std_intensity(RGB, BIN)
     def GetSize(self):
         self.size = 1
 
 class ChannelStdIntensity(Feature):
-    def _apply_region(self, regionp, RGB):
-        bin = regionp.image.astype(np.uint8)
-        bin = bin > 0
-        x_m, y_m, x_M, y_M = regionp.bbox
-        img_crop = RGB[x_m:x_M, y_m:y_M]
+    def _apply_region(self, RGB, BIN, cell):
+        bin_c = BIN > 0
         val = []
         for c in range(RGB.shape[2]):
-            cha_crop = img_crop[:,:,c]
-            value = np.std(cha_crop[bin]) / 255
+            cha_crop = RGB[:,:,c]
+            value = np.std(cha_crop[bin_c]) / 255
             val.append(value)
         return val
     def GetSize(self):
         self.size = 3
 
 class Circularity(Feature):
-    def _apply_region(self, regionp, RGB):
-        circularity = (regionp.perimeter ** 2) / ( 4 * np.pi * regionp.area )
+    def _apply_region(self, RGB, BIN, cell):
+        circularity = (cell.perimeter ** 2) / ( 4 * np.pi * cell.area )
         return circularity
     def GetSize(self):
         self.size = 1
 
 class Elongation(Feature):
-    def _apply_region(self, regionp, RGB):
-        if regionp.major_axis_length != 0:
-            elongation = regionp.minor_axis_length / regionp.major_axis_length
+    def _apply_region(self, RGB, BIN, cell):
+        if cell.major_axis_length != 0:
+            elongation = cell.minor_axis_length / cell.major_axis_length
             return elongation
         else:
             return 0
     def GetSize(self):
         self.size = 1
 
+
+# class Granulometri(Feature):
+#     def __init__(self, name, n_extension, sizes=[1, 2, 3, 4]):
+#         self.name = name
+#         self.n_extension = n_extension
+#         self.size = len(sizes)
+#         self.sizes = sizes
+#         self.GetSize(sizes)
+#     def GetSize(self, list_):
+#         self.size = len(list_)
+#     def _apply_region(self, RGB, BIN, cell):
+#         tmp = rgb2gray(RGB).copy()
+#         sum_total = np.sum(tmp[BIN])
+#         values = np.zeros(shape=self.size)
+#         for i, s in enumerate(self.sizes):
+#             opened_plus_one = ndimage.grey_opening(tmp, structure=disk(s))
+#             diff_img = tmp - opened_plus_one
+#             values[i] = np.sum(diff_img[BIN]) / sum_total
+#             tmp = opened_plus_one
+#         return values
 class Granulometri(Feature):
-    def __init__(self, name, n_extension, sizes=[1, 3, 5, 7]):
+    def __init__(self, name, n_extension, sizes=[1, 2, 5, 7]):
         self.name = name
         self.n_extension = n_extension
         self.size = len(sizes)
@@ -195,19 +203,16 @@ class Granulometri(Feature):
         self.GetSize(sizes)
     def GetSize(self, list_):
         self.size = len(list_)
-    def _apply_region(self, regionp, RGB):
-        x_m, y_m, x_M, y_M = regionp.bbox
-        img_crop = RGB[x_m:x_M, y_m:y_M]
-        tmp = rgb2gray(img_crop).copy()
-        bin = regionp.image.astype(np.uint8)
-        BIN = bin > 0
-        sum_total = np.sum(tmp[BIN])
+    def _apply_region(self, RGB, BIN, cell):
+        tmp = rgb2gray(RGB)
+        BINb = BIN > 0
+        sum_total = np.sum(tmp[BINb])
         values = np.zeros(shape=self.size)
         for i, s in enumerate(self.sizes):
             se = disk(s)
             opn_img = opening(tmp, se)
             diff_img = tmp - opn_img
-            values[i] = np.sum(diff_img[BIN]) / sum_total
+            values[i] = np.sum(diff_img[BINb]) / sum_total
             tmp = opn_img
         return values
 
@@ -219,7 +224,7 @@ class GranulometriOutside(Granulometri):
         self.sizes = sizes
         self.GetSize(sizes)
         self.marge = pixel_marge
-    def _apply_region(self, regionp, RGB):
+    def _apply_region(self, RGB, BIN, cell):
         x_m, x_M, y_m, y_M, inv_bin = OutSideBBandBin(regionp, RGB, self.marge)
 
         img_crop = RGB[x_m:x_M, y_m:y_M]
@@ -236,38 +241,31 @@ class GranulometriOutside(Granulometri):
         return values
 
 class LBP(Feature):
-    def __init__(self, name, n_extension, radius=[1,3,5],#,3,5], 
-                 n_points=None, methods=["ror", "uniform", "var"],# "default", 'uniform', 'nri_uniform', 'var'], 
-                 quantiles=[el for el in range(0, 100, 10)]):
+    def __init__(self, name, n_extension, radius=[1,3],#,3,5], 
+                 n_points=None, methods=["ror"],# "default", 'uniform', 'nri_uniform', 'var'], 
+                 quantiles=[el for el in range(10, 100, 10)]):
         self.name = []
         for r in radius:
             for m in methods:
                 for q in quantiles:
-                    self.name.append("LBP__m_{}__r_{}__q_{}".format(m, r, q))
+                    self.name.append(f"LBPOutside__m_{m}__r_{r}__q_{q}__d__{n_extension}")
         self.n_extension = n_extension
         self.size = len(radius) * len(methods) * len(quantiles)
         self.radius = radius
-        self.n_points = [8 * r for r in radius] if n_points is None else n_points 
+        self.n_points = [6 * r for r in radius] if n_points is None else n_points 
         self.methods = methods
         self.quantiles = quantiles
-        self.GetSize()
-    def GetSize(self):
-        pass
-    def _apply_region(self, regionp, RGB):
-        x_m, y_m, x_M, y_M = regionp.bbox
-        img_crop = RGB[x_m:x_M, y_m:y_M]
-        tmp = rgb2gray(img_crop).copy()
-        bin = regionp.image.astype(np.uint8)
-        BIN = bin > 0
-
+    
+    def _apply_region(self, RGB, BIN, cell):
+        BIN_c = BIN > 0
+        tmp = rgb2gray(RGB)
         output = np.zeros(self.size)
         ind = 0
-
         for r, n_points in zip(self.radius, self.n_points):
             for m in self.methods:
                 lbp = local_binary_pattern(tmp, n_points, r, m)
                 for q in self.quantiles:
-                    output[ind] = np.percentile(lbp[BIN], q)
+                    output[ind] = np.percentile(lbp[BIN_c], q)
                     ind += 1
             
         return output
@@ -281,7 +279,7 @@ class LBPOutside(LBP):
         for r in radius:
             for m in methods:
                 for q in quantiles:
-                    self.name.append("LBPOutside__m_{}__r_{}__q_{}".format(m, r, q))
+                    self.name.append(f"LBPOutside__m_{m}__r_{r}__q_{q}__d__{n_extension}")
         self.n_extension = n_extension
         self.size = len(radius) * len(methods) * len(quantiles)
         self.radius = radius
@@ -290,7 +288,7 @@ class LBPOutside(LBP):
         self.quantiles = quantiles
         self.GetSize()
         self.marge = pixel_marge
-    def _apply_region(self, regionp, RGB):
+    def _apply_region(self, RGB, BIN, cell):
         x_m, x_M, y_m, y_M, inv_bin = OutSideBBandBin(regionp, RGB, self.marge)
 
         img_crop = RGB[x_m:x_M, y_m:y_M]
@@ -316,16 +314,22 @@ class Centroid(Feature):
         self.size = 0
         self.shift_value = (0, 0)
         self.GetSize()
-    def _apply_region(self, regionp, RGB):
-        centers = regionp.centroid
-        bbox = regionp.bbox
-        coordinates = (centers[1], centers[0], bbox[1], bbox[0], bbox[3], bbox[2])
-        coordinates = (coordinates[0] + self.shift(0), coordinates[1] + self.shift(1), 
-                       coordinates[2] + self.shift(0), coordinates[3] + self.shift(1),
-                       coordinates[4] + self.shift(0), coordinates[5] + self.shift(1))
+    def _apply_region(self, RGB, BIN, cell):
+        centers = cell.centroid
+        bbox = cell.bbox
+        w, h, z = RGB.shape
+        coordinates = (
+            centers[1] + self.shift(0),
+            centers[0] + self.shift(1),
+            w, h, 
+            bbox[1] + self.shift(0),
+            bbox[0] + self.shift(1),
+            bbox[3] + self.shift(0),
+            bbox[2] + self.shift(1)
+        )
         return coordinates
     def GetSize(self):
-        self.size = 6
+        self.size = 8
     def set_shift(self, couple):
         self.shift_value = couple
     def shift(self, integer):
@@ -333,9 +337,9 @@ class Centroid(Feature):
 
 class Save(Feature):
     """Not usable yet, need to figure out a way for the diff name"""
-    def _apply_region(self, regionp, RGB):
-        bin = regionp.image.astype(np.uint8)
-        x_m, y_m, x_M, y_M = regionp.bbox
+    def _apply_region(self, RGB, BIN, cell):
+        bin = cell.image.astype(np.uint8)
+        x_m, y_m, x_M, y_M = cell.bbox
         img_crop = RGB[x_m:x_M, y_m:y_M]
         imsave("test_rgb.png" ,img_crop)
         imsave("test.png", bin)

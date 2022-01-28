@@ -10,6 +10,8 @@ params.tiff_location = "./data/*.tiff" // tiff files to process
 params.tissue_segmentation_model = "./meta/tissue_segmentation_model"
 params.nucleus_segmentation_model = "./meta/nuclei_segmentation_model"
 params.save = 1
+params.n_jobs = 4
+n_jobs = params.n_jobs
 TISSUE_SEG_MODEL = file(params.tissue_segmentation_model)
 NUCLEUS_SEG_MODEL = file(params.nucleus_segmentation_model)
 params.margin = 50
@@ -84,6 +86,7 @@ if (params.save == 1){
 
     process FeatureExtraction_CellMarking {
         publishDir "${output_process}", overwrite: true, pattern: "*.csv"
+        publishDir "${output_process_tiny_cells}", overwrite: true, pattern: "*.npy"
         publishDir "${output_process_tiles}", overwrite: true, pattern: "tiles_markedcells"
 
         memory { 4.GB  + 4.GB * task.attempt }
@@ -95,18 +98,20 @@ if (params.save == 1){
         output:
             set file(sample), file("*.csv") into TABLE
             set file(sample), file("tiles_markedcells") into MARKED_CELLS
+            file("*.npy") into TINY_CELLS
 
         script:
             output_process = "${output_folder}/cell_tables"
             s_without_ext = "${sample}".split("\\.")[0]
             output_process_tiles = "${output_folder}/intermediate-tiles/${s_without_ext}"
+            output_process_tiny_cells = "${output_folder}/tiny_cells"
             marked_cells = "tiles_markedcells"
             extractor = file("src/extractor/extraction.py")
             """
             python $extractor --segmented_batch $batch \
                             --marge $wsi_margin \
                             --output_tiles $marked_cells \
-                            --name $s_without_ext
+                            --name $s_without_ext --n_jobs $n_jobs
             """
     }
     CONTOURS .concat(BIN, PROB, MARKED_CELLS).set{TO_STICH}
@@ -154,6 +159,7 @@ if (params.save == 1){
 
     process FeatureExtraction {
         publishDir "${output_process}", overwrite: true, pattern: "*.csv"
+        publishDir "${output_process_tiny_cells}", overwrite: true, pattern: "*.npy"
 
         memory { 4.GB  + 4.GB * task.attempt }
         errorStrategy 'retry'
@@ -163,11 +169,13 @@ if (params.save == 1){
 
         output:
             set file(sample), file("*.csv") into TABLE
+            file("*.npy") into TINY_CELLS
 
         script:
             output_process = "${output_folder}/cell_tables"
             s_without_ext = "${sample}".split("\\.")[0]
             output_process_tiles = "${output_folder}/intermediate-tiles/${s_without_ext}"
+            output_process_tiny_cells = "${output_folder}/tiny_cells"
             marked_cells = "tiles_markedcells"
             extractor = file("src/extractor/extraction.py")
             """
@@ -175,7 +183,7 @@ if (params.save == 1){
                             --marge $wsi_margin \
                             --output_tiles $marked_cells \
                             --name $s_without_ext \
-                            --no_samples
+                            --no_samples --n_jobs $n_jobs
             """
     }
 
