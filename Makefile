@@ -31,7 +31,7 @@ camelyon: src/CellularSegmentation.nf
 
 
 bach: src/BachSegmentation.nf
-	$(ENV); nextflow $< -resume -c nextflow.config -profile local \
+	$(ENV); nextflow $< -resume -c nextflow.config -profile kuma \
 						--PROJECT_NAME local_bach --PROJECT_VERSION 1-0 \
 						--tiff_location "/data2/pnaylor/datasets/pathology/ICIAR2018_BACH_Challenge/Photos/*/" \
 						--nucleus_segmentation_model ../segmentation-he/outputs/nuclei_segmentation_model_with_aji/nuclei_segmentation_model \
