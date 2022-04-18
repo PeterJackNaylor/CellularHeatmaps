@@ -259,7 +259,10 @@ def analyse_cell(cell, rgb_image, marge, p, features_grow_region_n,
             rgb_c, bin_c = get_crop(rgb_image, bin_image_copy, cell, d=dilation_res)
             for j, feat in enumerate(features_grow_region_n[dilation_res]):
                 off_tmp = feat.size 
-                c_array[(offset_all):(offset_all + off_tmp)] = feat._apply_region(rgb_c, bin_c, cell)
+                try:
+                    c_array[(offset_all):(offset_all + off_tmp)] = feat._apply_region(rgb_c, bin_c, cell)
+                except:
+                    c_array[(offset_all):(offset_all + off_tmp)] = None
                 offset_all += off_tmp
     return c_array
 
