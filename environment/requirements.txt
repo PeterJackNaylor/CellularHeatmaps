@@ -3,7 +3,7 @@ scikit-learn
 scikit-image
 imagecodecs
 tqdm
-pillow==8.2.0
+pillow==9.3.0
 albumentations
 openslide-python
 useful_wsi
